@@ -6,12 +6,11 @@ local FolderSelected = false
 local PANEL = {}
 
 function PANEL:Init()
-
     self:SetTitle("Save")
     self:SetDeleteOnClose(false)
     self:SetSizable(true)
 
-    self:SetSize(250, 250)
+    self:SetSize(500, 500)
     self:SetMinWidth(250)
     self:SetMinHeight(250)
     self:SetPos(ScrW() / 2 - self:GetWide() / 2, ScrH() / 2 - self:GetTall() / 2)
@@ -36,7 +35,7 @@ function PANEL:Init()
         FolderSelected = false
     end
     self.FileList.DoDoubleClick = function(_, rowID, row)
-        if not IsValid(row) then 
+        if not IsValid(row) then
             return
         end
         local path = row:GetValue(1)
@@ -74,14 +73,12 @@ function PANEL:Init()
     self.Delete.DoClick = function()
         self:DoDelete()
     end
-
 end
 
 function PANEL:PerformLayout(width, height)
-
     self.BaseClass.PerformLayout(self, width, height)
 
-    local xOffset, yOffset = (self:GetWide()*0.2 - 50), (self:GetTall()*0.1 - 25)
+    local xOffset, yOffset = (self:GetWide() * 0.2 - 50), (self:GetTall() * 0.1 - 25)
 
     self.FileName:SetPos(5, 45)
     self.FileName:SetSize(self:GetWide() - 75 - xOffset, 20)
@@ -96,15 +93,14 @@ function PANEL:PerformLayout(width, height)
     self.Save:SetPos(self:GetWide() - 65 - xOffset, 67)
     self.Save:SetSize(60 + xOffset, 20 + yOffset)
 
-    self.MakeFolder:SetPos(self:GetWide() - 65 - xOffset, 97 + 2*yOffset)
+    self.MakeFolder:SetPos(self:GetWide() - 65 - xOffset, 97 + 2 * yOffset)
     self.MakeFolder:SetSize(60 + xOffset, 20 + yOffset)
 
-    self.Pack:SetPos(self:GetWide() - 65 - xOffset, 127 + 4*yOffset)
+    self.Pack:SetPos(self:GetWide() - 65 - xOffset, 127 + 4 * yOffset)
     self.Pack:SetSize(60 + xOffset, 20 + yOffset)
 
-    self.Delete:SetPos(self:GetWide() - 65 - xOffset, 207 + 6*yOffset)
+    self.Delete:SetPos(self:GetWide() - 65 - xOffset, 207 + 6 * yOffset)
     self.Delete:SetSize(60 + xOffset, 20 + yOffset)
-
 end
 
 function PANEL:SetSaves(folders, saves, path)
@@ -182,7 +178,7 @@ function PANEL:DoDelete()
 
     local promptpanel = vgui.Create("DFrame")
     promptpanel:SetTitle("Confirm delete")
-    promptpanel:SetPos((ScrW() / 2) - 250/2, (ScrH() / 2) - 200/2)
+    promptpanel:SetPos((ScrW() / 2) - 250 / 2, (ScrH() / 2) - 200 / 2)
     promptpanel:SetSize(250, 200)
     promptpanel:MakePopup()
     promptpanel:DoModal()
@@ -239,7 +235,7 @@ function PANEL:SaveExists(names)
 
     local overwritepanel = vgui.Create("DFrame")
     overwritepanel:SetTitle("Overwrite save?")
-    overwritepanel:SetPos((ScrW() / 2) - 250/2, (ScrH() / 2) - 250/2)
+    overwritepanel:SetPos((ScrW() / 2) - 250 / 2, (ScrH() / 2) - 250 / 2)
     overwritepanel:SetSize(250, 250)
     overwritepanel:MakePopup()
     overwritepanel:DoModal()
@@ -250,7 +246,7 @@ function PANEL:SaveExists(names)
     overwritepanel.ScrollPanel:SetSize(220, 190)
 
     if next(names) ~= nil then
-        namelist = {"Following animations from the save will be lost:\n"}
+        namelist = { "Following animations from the save will be lost:\n" }
         for _, name in ipairs(names) do
             table.insert(namelist, "- " .. name .. "\n")
         end
@@ -261,7 +257,10 @@ function PANEL:SaveExists(names)
 
     overwritepanel.ScrollPanel.Text = vgui.Create("DLabel")
     overwritepanel.ScrollPanel.Text:SetSize(200, 20)
-    overwritepanel.ScrollPanel.Text:SetText('Save "' .. path .. '" already exists. Do you want to replace it?\n\n' .. namelist .. "\n\nUse Append mode to merge animations from the game session into the save.")
+    overwritepanel.ScrollPanel.Text:SetText('Save "' ..
+    path ..
+    '" already exists. Do you want to replace it?\n\n' ..
+    namelist .. "\n\nUse Append mode to merge animations from the game session into the save.")
     overwritepanel.ScrollPanel.Text:SetWrap(true)
     overwritepanel.ScrollPanel.Text:SetAutoStretchVertical(true)
 
@@ -314,7 +313,7 @@ function PANEL:AppendWindow(savenames, gamenames)
 
     local appendpanel = vgui.Create("DFrame")
     appendpanel:SetTitle("Append")
-    appendpanel:SetPos((ScrW() / 2) - 300/2, (ScrH() / 2) - 350/2)
+    appendpanel:SetPos((ScrW() / 2) - 300 / 2, (ScrH() / 2) - 350 / 2)
     appendpanel:SetSize(300, 350)
     appendpanel:MakePopup()
     appendpanel:DoModal()
@@ -342,10 +341,10 @@ function PANEL:AppendWindow(savenames, gamenames)
     for id, name in ipairs(savenames) do
         appendpanel.ScrollPanel.SaveNames[id] = vgui.Create("DCheckBox", appendpanel.ScrollPanel)
         appendpanel.ScrollPanel.SaveNames[id]:SetSize(15, 15)
-        appendpanel.ScrollPanel.SaveNames[id]:SetPos(130, 30 + (id - 1)*20)
+        appendpanel.ScrollPanel.SaveNames[id]:SetPos(130, 30 + (id - 1) * 20)
         appendpanel.ScrollPanel.SaveNames[id].Label = vgui.Create("DLabel", appendpanel.ScrollPanel)
         appendpanel.ScrollPanel.SaveNames[id].Label:SetSize(80, 15)
-        appendpanel.ScrollPanel.SaveNames[id].Label:SetPos(130 + 20, 30 + (id - 1)*20)
+        appendpanel.ScrollPanel.SaveNames[id].Label:SetPos(130 + 20, 30 + (id - 1) * 20)
         appendpanel.ScrollPanel.SaveNames[id].Label:SetMouseInputEnabled(true)
         appendpanel.ScrollPanel.SaveNames[id].Label:SetText(name)
         appendpanel.ScrollPanel.SaveNames[id].Label:SetTooltip(name)
@@ -364,10 +363,10 @@ function PANEL:AppendWindow(savenames, gamenames)
     for id, name in ipairs(gamenames) do
         appendpanel.ScrollPanel.GameNames[id] = vgui.Create("DCheckBox", appendpanel.ScrollPanel)
         appendpanel.ScrollPanel.GameNames[id]:SetSize(15, 15)
-        appendpanel.ScrollPanel.GameNames[id]:SetPos(0, 30 + (id - 1)*20)
+        appendpanel.ScrollPanel.GameNames[id]:SetPos(0, 30 + (id - 1) * 20)
         appendpanel.ScrollPanel.GameNames[id].Label = vgui.Create("DLabel", appendpanel.ScrollPanel)
         appendpanel.ScrollPanel.GameNames[id].Label:SetSize(80, 15)
-        appendpanel.ScrollPanel.GameNames[id].Label:SetPos(20, 30 + (id - 1)*20)
+        appendpanel.ScrollPanel.GameNames[id].Label:SetPos(20, 30 + (id - 1) * 20)
         appendpanel.ScrollPanel.GameNames[id].Label:SetMouseInputEnabled(true)
         appendpanel.ScrollPanel.GameNames[id].Label:SetText(name)
         appendpanel.ScrollPanel.GameNames[id].Label:SetTooltip(name)
@@ -422,12 +421,19 @@ function PANEL:AppendWindow(savenames, gamenames)
 end
 
 function PANEL:OnSaveRequested(path, saveToClient) end
+
 function PANEL:OnFolderRequested(path, saveToClient) end
+
 function PANEL:OnGoToFolderRequested(path, toClient) end
+
 function PANEL:OnOverwriteSave(path) end
+
 function PANEL:OnAppendRequested(path) end
+
 function PANEL:OnAppend(path, savenames, gamenames) end
+
 function PANEL:OnPackRequested() end
+
 function PANEL:OnDeleteRequested(path, isFolder, deleteFromClient) end
 
 vgui.Register("SMHSave", PANEL, "DFrame")
