@@ -160,14 +160,26 @@ function PANEL:RemoveSave(path, isFolder)
 end
 
 function PANEL:DoSave()
-    local path = self.FileName:GetValue()
-    if not path or path == "" then
+    local targetFileName = self.FileName:GetValue()
+
+    if not targetFileName then
+        return
+    elseif targetFileName == "" then
+        return
+    elseif FolderSelected then
         return
     end
 
+    if string.sub(targetFileName, 1, 2) == "> " then -- Assumes this is an existing save
+        -- Strip "> " file denoter and ".txt" file suffix from name
+        targetFileName = string.sub(targetFileName, 3, -5)
+    end
+
+    targetFileName = table.concat(self.folderTree, "/") .. "/" .. targetFileName
+
     FolderSelected = false
     -- TODO clientside support for loading and saving
-    self:OnSaveRequested(path, false)
+    self:OnSaveRequested(targetFileName, false)
 end
 
 function PANEL:DoFolder()
