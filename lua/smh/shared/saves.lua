@@ -97,6 +97,7 @@ end
 
 function MGR.Load(path, player)
     path = SaveDir .. (PlayerPath[player] or "") .. path .. ".txt"
+
     if not file.Exists(path, "DATA") then
         error("SMH file does not exist: " .. path)
     end

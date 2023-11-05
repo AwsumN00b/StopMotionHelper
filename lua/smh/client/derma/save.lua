@@ -36,6 +36,7 @@ function PANEL:Init()
         self.FileName:SetValue(row:GetValue(1))
         FolderSelected = false
     end
+    
     self.FileList.DoDoubleClick = function(_, rowID, row)
         if not IsValid(row) then
             return

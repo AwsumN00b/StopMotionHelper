@@ -16,15 +16,26 @@ function PANEL:Init()
     self.PathLabel:SetText("smh/")
     self.PathLabel:SetTooltip("smh/")
 
+    self.folderTree = {}
+
     self.FileList = vgui.Create("DListView", self)
     self.FileList:AddColumn("Saved scenes")
     self.FileList:SetMultiSelect(false)
     self.FileList.OnRowSelected = function(_, rowIndex, row)
-        if row.IsFolder or row:GetValue(1) == ".." then
+        if not IsValid(row) then
+            return
+        elseif row.IsFolder then
+            local folderName = row:GetValue(1)
+            self:openFolder(folderName)
             return
         end
-        self:OnModelListRequested(row:GetValue(1), false)
+
+        print(row:GetValue(1))
+        local fileName = string.sub(row:GetValue(1), 3, -1)
+        print(fileName)
+        self:OnModelListRequested(fileName, false)
     end
+
     self.FileList.DoDoubleClick = function(_, rowIndex, row)
         local path = row:GetValue(1)
         if not (row.IsFolder or path == "..") then return end
@@ -139,6 +150,27 @@ end
 function PANEL:SetModelName(name, class)
     self.SaveEntity:SetText("Save's model: " .. name)
     self.SaveClass:SetText("Save's class: " .. class)
+end
+
+function PANEL:openFolder(folderName)
+    if folderName == ".." then
+        table.remove(self.folderTree)
+    else
+        table.insert(self.folderTree, folderName)
+    end
+
+    folderName = "smh/" .. table.concat(self.folderTree, "/") .. "/"
+    local saves, _ = file.Find(folderName .. "*.txt", "DATA")
+    local _, folders = file.Find(folderName .. "*", "DATA")
+
+    if #self.folderTree > 0 then
+        table.insert(folders, 1, "..")
+    end
+
+    self.FileList:UpdateLines(folders, true)
+    self.FileList:UpdateLines(saves)
+    self.PathLabel:SetText(folderName)
+    self.PathLabel:SetTooltip(folderName)
 end
 
 function PANEL:LoadSelected()
