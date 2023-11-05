@@ -153,11 +153,15 @@ function MGR.GetModelName(path, modelName, player)
 end
 
 function MGR.LoadForEntity(path, modelName, player)
+    if string.sub(path, 1, 2) == "> " then -- Assumes this is an existing save
+        -- Strip "> " file denoter and ".txt" file suffix from name
+        path = string.sub(path, 3, -1)
+    end
+
     local serializedKeyframes = MGR.Load(path, player)
     for _, sEntity in pairs(serializedKeyframes.Entities) do
         if not sEntity.Properties then
             if sEntity.Model == modelName then
-
                 sEntity.Properties = {
                     Name = sEntity.Model,
                 }
@@ -195,7 +199,7 @@ function MGR.CheckIfExists(path, player)
         file.CreateDir(SaveDir)
     end
 
-    path = SaveDir .. (PlayerPath[player] or "") ..  path .. ".txt"
+    path = SaveDir .. (PlayerPath[player] or "") .. path .. ".txt"
     if file.Exists(path, "DATA") and not file.IsDir(path, "DATA") then return true end
 
     return false

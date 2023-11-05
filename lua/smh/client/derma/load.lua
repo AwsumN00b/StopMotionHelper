@@ -1,7 +1,6 @@
 local PANEL = {}
 
 function PANEL:Init()
-
     self:SetTitle("Load")
     self:SetDeleteOnClose(false)
     self:SetSizable(true)
@@ -30,9 +29,7 @@ function PANEL:Init()
             return
         end
 
-        print(row:GetValue(1))
         local fileName = string.sub(row:GetValue(1), 3, -1)
-        print(fileName)
         self:OnModelListRequested(fileName, false)
     end
 
@@ -50,7 +47,15 @@ function PANEL:Init()
     self.EntityList.OnRowSelected = function(_, rowIndex, row)
         local _, selectedSave = self.FileList:GetSelectedLine()
         if not IsValid(selectedSave) then return end
-        self:OnModelInfoRequested(selectedSave:GetValue(1),row:GetValue(1), false)
+
+        local targetFileName = selectedSave:GetValue(1)
+
+        if string.sub(targetFileName, 1, 2) == "> " then -- Assumes this is an existing save
+            -- Strip "> " file denoter and ".txt" file suffix from name
+            targetFileName = string.sub(targetFileName, 3, -1)
+        end
+
+        self:OnModelInfoRequested(targetFileName, row:GetValue(1), false)
     end
 
     self.Load = vgui.Create("DButton", self)
@@ -76,29 +81,27 @@ function PANEL:Init()
 
     self.SelectedEnt = vgui.Create("DLabel", self)
     self.SelectedEnt:SetText("Selected model: " .. "nil")
-
 end
 
 function PANEL:PerformLayout(width, height)
-
     self.BaseClass.PerformLayout(self, width, height)
 
     self.PathLabel:SetPos(5, 30)
     self.PathLabel:SetSize(self:GetWide(), 15)
 
     self.FileList:SetPos(5, 45)
-    self.FileList:SetSize(117 + ( self:GetWide()/2 - 125 ), 120 + ( self:GetTall()*0.9 - 225 ))
+    self.FileList:SetSize(117 + (self:GetWide() / 2 - 125), 120 + (self:GetTall() * 0.9 - 225))
 
-    self.EntityList:SetPos(127 + ( self:GetWide()/2 - 125 ), 45)
-    self.EntityList:SetSize(117 + ( self:GetWide()/2 - 125 ), 120 + ( self:GetTall()*0.9 - 225 ))
+    self.EntityList:SetPos(127 + (self:GetWide() / 2 - 125), 45)
+    self.EntityList:SetSize(117 + (self:GetWide() / 2 - 125), 120 + (self:GetTall() * 0.9 - 225))
 
-    self.Load:SetPos(self:GetWide() - 65 - ( self:GetWide()*0.2 - 50 ), self:GetTall() - 58 - ( self:GetTall()*0.1 - 25 ))
-    self.Load:SetSize(60 + ( self:GetWide()*0.2 - 50 ), 20 + ( self:GetTall()*0.1 - 25 )/2)
+    self.Load:SetPos(self:GetWide() - 65 - (self:GetWide() * 0.2 - 50), self:GetTall() - 58 - (self:GetTall() * 0.1 - 25))
+    self.Load:SetSize(60 + (self:GetWide() * 0.2 - 50), 20 + (self:GetTall() * 0.1 - 25) / 2)
 
-    self.Spawn:SetRelativePos(self.Load, 0, 30 + ( self:GetTall()*0.1 - 25 )/2)
-    self.Spawn:SetSize(60 + ( self:GetWide()*0.2 - 50 ), 20 + ( self:GetTall()*0.1 - 25 )/2)
+    self.Spawn:SetRelativePos(self.Load, 0, 30 + (self:GetTall() * 0.1 - 25) / 2)
+    self.Spawn:SetSize(60 + (self:GetWide() * 0.2 - 50), 20 + (self:GetTall() * 0.1 - 25) / 2)
 
-    local labelSize, labelY = self.Load:GetX() - 10, self:GetTall()*0.9 - 225
+    local labelSize, labelY = self.Load:GetX() - 10, self:GetTall() * 0.9 - 225
 
     self.SelectedEnt:SetPos(5, 230 + labelY)
     self.SelectedEnt:SetSize(labelSize, 15)
@@ -111,7 +114,6 @@ function PANEL:PerformLayout(width, height)
 
     self.SaveMap:SetPos(5, 210 + labelY)
     self.SaveMap:SetSize(labelSize, 15)
-
 end
 
 function PANEL:DoFolderPath(path)
@@ -188,9 +190,13 @@ function PANEL:LoadSelected()
 end
 
 function PANEL:OpenSpawnMenu() end
+
 function PANEL:OnModelListRequested(path, loadFromClient) end
+
 function PANEL:OnGoToFolderRequested(path, toClient) end
+
 function PANEL:OnLoadRequested(path, modelName, loadFromClient) end
+
 function PANEL:OnModelInfoRequested(path, modelname, loadFromClient) end
 
 vgui.Register("SMHLoad", PANEL, "DFrame")
