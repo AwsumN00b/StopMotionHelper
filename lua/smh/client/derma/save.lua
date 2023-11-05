@@ -20,15 +20,17 @@ function PANEL:Init()
     self.FileName.Label:SetText("Name")
     self.FileName.Label:SizeToContents()
 
+    self.folderTree = {}
+
     self.FileList = vgui.Create("DListView", self)
     self.FileList:SetMultiSelect(false)
     self.FileList:AddColumn("Saved scenes")
     self.FileList.OnRowSelected = function(_, rowID, row)
-        if not IsValid(row) or row:GetValue(1) == ".." then
+        if not IsValid(row) then
             return
         elseif row.IsFolder then
-            self.FileName:SetValue(string.sub(row:GetValue(1), 2))
-            FolderSelected = true
+            local folderName = row:GetValue(1)
+            self:openFolder(folderName)
             return
         end
         self.FileName:SetValue(row:GetValue(1))
@@ -101,6 +103,27 @@ function PANEL:PerformLayout(width, height)
 
     self.Delete:SetPos(self:GetWide() - 65 - xOffset, 207 + 6 * yOffset)
     self.Delete:SetSize(60 + xOffset, 20 + yOffset)
+end
+
+function PANEL:openFolder(folderName)
+    if folderName == ".." then
+        table.remove(self.folderTree)
+    else
+        table.insert(self.folderTree, folderName)
+    end
+
+    folderName = "smh/" .. table.concat(self.folderTree, "/") .. "/"
+    local saves, _ = file.Find(folderName .. "*.txt", "DATA")
+    local _, folders = file.Find(folderName .. "*", "DATA")
+
+    if #self.folderTree > 0 then
+        table.insert(folders, 1, "..")
+    end
+
+    self.FileList:UpdateLines(folders, true)
+    self.FileList:UpdateLines(saves)
+    self.PathLabel:SetText(folderName)
+    self.PathLabel:SetTooltip(folderName)
 end
 
 function PANEL:SetSaves(folders, saves, path)
@@ -258,9 +281,9 @@ function PANEL:SaveExists(names)
     overwritepanel.ScrollPanel.Text = vgui.Create("DLabel")
     overwritepanel.ScrollPanel.Text:SetSize(200, 20)
     overwritepanel.ScrollPanel.Text:SetText('Save "' ..
-    path ..
-    '" already exists. Do you want to replace it?\n\n' ..
-    namelist .. "\n\nUse Append mode to merge animations from the game session into the save.")
+        path ..
+        '" already exists. Do you want to replace it?\n\n' ..
+        namelist .. "\n\nUse Append mode to merge animations from the game session into the save.")
     overwritepanel.ScrollPanel.Text:SetWrap(true)
     overwritepanel.ScrollPanel.Text:SetAutoStretchVertical(true)
 

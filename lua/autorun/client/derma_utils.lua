@@ -11,8 +11,8 @@ function PANEL:UpdateLines(lines, isfolder)
     local existing = {}
 
     for _, line in pairs(lines) do -- turn lines stuff into a "sorting" table
-        if isfolder then
-            line = "\\" .. line .. "\\"
+        if !isfolder then
+            line = "> " .. line
         end
         set[line] = true
     end
