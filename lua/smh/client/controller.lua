@@ -4,7 +4,8 @@ local KFRAMES_PER_MSG = 250
 local function ReceiveKeyframes()
     local framecount = net.ReadUInt(INT_BITCOUNT)
     for i = 1, framecount do
-        local ID, entity, Frame, ModCount = net.ReadUInt(INT_BITCOUNT), net.ReadEntity(), net.ReadUInt(INT_BITCOUNT), net.ReadUInt(INT_BITCOUNT)
+        local ID, entity, Frame, ModCount = net.ReadUInt(INT_BITCOUNT), net.ReadEntity(), net.ReadUInt(INT_BITCOUNT),
+            net.ReadUInt(INT_BITCOUNT)
         local Modifiers, In, Out = {}, {}, {}
         for j = 1, ModCount do
             local name = net.ReadString()
@@ -19,10 +20,10 @@ end
 
 local function SendProperties(Timelines, KeyColor, ModCount, Modifiers)
     net.WriteUInt(Timelines, INT_BITCOUNT)
-    for i=1, Timelines do
+    for i = 1, Timelines do
         net.WriteColor(KeyColor[i])
         net.WriteUInt(ModCount[i], INT_BITCOUNT)
-        for j=1, ModCount[i] do
+        for j = 1, ModCount[i] do
             net.WriteString(Modifiers[i][j])
         end
     end
@@ -30,9 +31,9 @@ end
 
 local function ReceiveProperties()
     local Timelines = SMH.TableSplit.StartAProperties(net.ReadUInt(INT_BITCOUNT))
-    for i=1, Timelines do
+    for i = 1, Timelines do
         SMH.TableSplit.AProperties(i, nil, net.ReadColor())
-        for j=1, net.ReadUInt(INT_BITCOUNT) do
+        for j = 1, net.ReadUInt(INT_BITCOUNT) do
             SMH.TableSplit.AProperties(i, net.ReadString())
         end
     end
@@ -68,6 +69,48 @@ function CTRL.SelectEntity(entity, enttable)
     net.SendToServer()
 end
 
+-- AUDIO =========================
+function CTRL.AddAudio(path)
+    local frame = SMH.State.Frame
+
+    print(path, frame)
+
+    local audioclips = SMH.AudioClipManager.Create(path, frame)
+end
+
+function CTRL.DeleteAudio(id, pointer)
+    SMH.AudioClipData:Delete(id)
+    if pointer ~= nil then
+        SMH.UI.DeleteAudioClipPointer(pointer)
+    end
+    CTRL.UpdateServerAudio()
+end
+
+function CTRL.DeleteAllAudio()
+    SMH.AudioClipData:DeleteAll()
+    SMH.UI.DeleteAllAudioClipPointers()
+    CTRL.UpdateServerAudio()
+end
+
+function CTRL.UpdateServerAudio()
+    local audioTable = {}
+    for i, clip in pairs(SMH.AudioClipData.AudioClips) do
+        if audioTable[clip.Frame] == nil then
+            audioTable[clip.Frame] = {}
+        end
+        table.insert(audioTable[clip.Frame], {
+            ID = clip.ID,
+            Duration = clip.Duration
+        })
+    end
+
+    net.Start(SMH.MessageTypes.UpdateServerAudio)
+    net.WriteTable(audioTable)
+    net.SendToServer()
+end
+
+-- ===============================
+
 function CTRL.Record()
     if not next(SMH.State.Entity) or SMH.State.Frame < 0 or SMH.State.Timeline < 1 or SMH.PhysRecord.IsActive() then
         return
@@ -92,7 +135,8 @@ function CTRL.UpdateKeyframe(keyframeId, updateData, singledata)
     local keyframeAmount = #keyframeId
 
     for i = 1, math.ceil(keyframeAmount / KFRAMES_PER_MSG) do
-        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or keyframeAmount - KFRAMES_PER_MSG * (i - 1)
+        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or
+        keyframeAmount - KFRAMES_PER_MSG * (i - 1)
 
         net.Start(SMH.MessageTypes.UpdateKeyframe)
         net.WriteUInt(keyframesToSend, INT_BITCOUNT)
@@ -132,7 +176,8 @@ function CTRL.CopyKeyframe(keyframeId, frame)
     local keyframeAmount = #keyframeId
 
     for i = 1, math.ceil(keyframeAmount / KFRAMES_PER_MSG) do
-        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or keyframeAmount - KFRAMES_PER_MSG * (i - 1)
+        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or
+        keyframeAmount - KFRAMES_PER_MSG * (i - 1)
 
         net.Start(SMH.MessageTypes.CopyKeyframe)
         net.WriteUInt(keyframesToSend, INT_BITCOUNT)
@@ -153,7 +198,8 @@ function CTRL.DeleteKeyframe(keyframeId)
     local keyframeAmount = #keyframeId
 
     for i = 1, math.ceil(keyframeAmount / KFRAMES_PER_MSG) do
-        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or keyframeAmount - KFRAMES_PER_MSG * (i - 1)
+        local keyframesToSend = keyframeAmount - KFRAMES_PER_MSG * (i - 1) > KFRAMES_PER_MSG and KFRAMES_PER_MSG or
+        keyframeAmount - KFRAMES_PER_MSG * (i - 1)
 
         net.Start(SMH.MessageTypes.DeleteKeyframe)
         net.WriteUInt(keyframesToSend, INT_BITCOUNT)
@@ -176,11 +222,27 @@ function CTRL.StartPlayback()
     net.WriteUInt(SMH.State.PlaybackRate, INT_BITCOUNT)
     net.WriteTable(SMH.Settings.GetAll())
     net.SendToServer()
+
+    -- AUDIO =========================
+    -- check for any clips that are partway through and play them from that point
+    for i, clip in pairs(SMH.AudioClipData.AudioClips) do
+        -- calculate end frame
+        local endFrame = math.ceil(SMH.State.Frame + SMH.State.PlaybackRate * clip.Duration)
+        if SMH.State.Frame > clip.Frame and SMH.State.Frame < endFrame then
+            -- calculate start point
+            local startTime = ((SMH.State.Frame - clip.Frame - 0.5) / SMH.State.PlaybackRate) + clip.StartTime
+            SMH.AudioClip.Play(clip.ID, startTime)
+        end
+    end
+    -- AUDIO =========================
 end
 
 function CTRL.StopPlayback()
     net.Start(SMH.MessageTypes.StopPlayback)
     net.SendToServer()
+
+    -- AUDIO
+    SMH.AudioClip.StopAll()
 end
 
 function CTRL.GetServerSaves()
@@ -303,6 +365,48 @@ function CTRL.DeleteSave(path, isFolder, deleteFromClient)
     end
 end
 
+-- AUDIO SAVES ====================================================
+function CTRL.SaveAudioSeq(path)
+    -- all clientside
+    local keyframes = SMH.AudioClipData.AudioClips
+    local serializedClips = SMH.AudioSeqSaves.Serialize(keyframes)
+    SMH.AudioSeqSaves.Save(path, serializedClips)
+end
+
+function CTRL.DeleteAudioSeq(path)
+    SMH.AudioSeqSaves.Delete(path)
+end
+
+function CTRL.LoadAudioSeq(path, setFrameRate)
+    local setFrameRate = setFrameRate or false
+
+    -- Clear audio clips
+    CTRL.DeleteAllAudio()
+
+    -- Create new clips
+    local loadFile = SMH.AudioSeqSaves.Load(path)
+    local audioClipLoad = loadFile.Clips
+    for k, v in pairs(audioClipLoad) do
+        if v.Path and v.Frame and v.StartTime and v.Duration then
+            SMH.AudioClipManager.Create(v.Path, v.Frame, v.StartTime, v.Duration)
+        else
+            print("SMH Audio: Sequence file contains errors!")
+        end
+    end
+
+    --Set frame rate if required
+    if setFrameRate then
+        local newState = {
+            Frame = SMH.State.Frame,
+            PlaybackRate = loadFile.PlaybackRate,
+            PlaybackLength = loadFile.PlaybackLength
+        }
+        CTRL.UpdateState(newState, true)
+    end
+end
+
+-- ================================================================
+
 function CTRL.ShouldHighlight()
     return SMH.UI.IsOpen()
 end
@@ -325,7 +429,9 @@ function CTRL.CloseMenu()
     SMH.UI.Close()
 end
 
-function CTRL.UpdateState(newState)
+function CTRL.UpdateState(newState, updatePlaybackControls)
+    local updatePlaybackControls = updatePlaybackControls or false
+
     local allowedKeys = {
         Frame = true,
         Timeline = true,
@@ -340,7 +446,7 @@ function CTRL.UpdateState(newState)
         SMH.State[k] = v
     end
 
-    SMH.UI.UpdateState(SMH.State)
+    SMH.UI.UpdateState(SMH.State, updatePlaybackControls)
 end
 
 function CTRL.UpdateSettings(newSettings)
@@ -573,12 +679,12 @@ local function GetAllKeyframes(msgLength)
 end
 
 local function GetServerSavesResponse(msgLength)
-    for i=1, net.ReadUInt(INT_BITCOUNT) do
+    for i = 1, net.ReadUInt(INT_BITCOUNT) do
         SMH.TableSplit.ATable(i, net.ReadString())
     end
     local folders = SMH.TableSplit.GetTable()
 
-    for i=1, net.ReadUInt(INT_BITCOUNT) do
+    for i = 1, net.ReadUInt(INT_BITCOUNT) do
         SMH.TableSplit.ATable(i, net.ReadString())
     end
     local saves = SMH.TableSplit.GetTable()
@@ -588,7 +694,7 @@ local function GetServerSavesResponse(msgLength)
 end
 
 local function GetModelListResponse(msgLength)
-    for i=1, net.ReadUInt(INT_BITCOUNT) do
+    for i = 1, net.ReadUInt(INT_BITCOUNT) do
         SMH.TableSplit.ATable(i, net.ReadString())
     end
     local models = SMH.TableSplit.GetTable()
@@ -597,8 +703,8 @@ local function GetModelListResponse(msgLength)
 end
 
 local function GetServerEntitiesResponse(msgLength)
-    for i=1, net.ReadUInt(INT_BITCOUNT) do
-        SMH.TableSplit.ATable(net.ReadEntity(), {Name = net.ReadString()})
+    for i = 1, net.ReadUInt(INT_BITCOUNT) do
+        SMH.TableSplit.ATable(net.ReadEntity(), { Name = net.ReadString() })
     end
     local entities = SMH.TableSplit.GetTable()
     SMH.UI.SetEntityList(entities)
@@ -729,6 +835,25 @@ local function StopPhysicsRecordResponse(msgLength)
     SMH.PhysRecord.Stop()
 end
 
+-- AUDIO CONTROL =================
+local function PlayAudio()
+    --print("play audio")
+    local id = net.ReadUInt(INT_BITCOUNT)
+    SMH.AudioClip.Play(id)
+end
+
+local function StopAudio()
+    --print("stop audio")
+    local id = net.ReadUInt(INT_BITCOUNT)
+    SMH.AudioClip.Stop(id)
+end
+
+local function StopAllAudio()
+    --print("stop all audio")
+    SMH.AudioClip.StopAll()
+end
+-- ===============================
+
 local function Setup()
     net.Receive(SMH.MessageTypes.SetFrameResponse, SetFrameResponse)
 
@@ -761,6 +886,10 @@ local function Setup()
     net.Receive(SMH.MessageTypes.RequestWorldDataResponse, RequestWorldDataResponse)
 
     net.Receive(SMH.MessageTypes.StopPhysicsRecordResponse, StopPhysicsRecordResponse)
+
+    net.Receive(SMH.MessageTypes.PlayAudio, PlayAudio)
+    net.Receive(SMH.MessageTypes.StopAudio, StopAudio)
+    net.Receive(SMH.MessageTypes.StopAllAudio, StopAllAudio)
 end
 
 Setup()
